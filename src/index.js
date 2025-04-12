@@ -4,6 +4,7 @@ const fs = require('fs');
 const { stringify } = require('querystring');
 const crypto = require('crypto')
 const nacl = require('tweetnacl');
+const { exec } = require('child_process');
 
 const client = new Client({
     intents: [
@@ -73,7 +74,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
         const userid = interaction.user.id.toString();
         const confname = interaction.options.get('名稱')?.value;
         const leasetime = interaction.options.get('租用效期')?.value;
-        const location = interaction.options.get('地區')?.value;
         
         let serverData = readData();
 
@@ -97,7 +97,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
             serverData[userid] = {
                 confname, 
                 leasetime, 
-                location, 
                 PrivateKey, 
                 PublicKey,
                 ip: newip, 
@@ -114,7 +113,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
                     .addFields(
                         { name: '名稱', value: confname, inline: true },
                         { name: '租用期限', value: `${leasetime}天`, inline: true },
-                        { name: '地區', value: location, inline: true },
                         { name: '私鑰', value: `\`\`${PrivateKey}\`\``, inline: false },
                         { name: 'IP', value: `\`\`${newip}\`\``, inline: false },
 
@@ -145,7 +143,7 @@ AllowedIPs = ${user.ip}
             const conffile = '/config/wg0.conf'
             fs.writeFileSync(conffile, finalconfig.trim(), 'utf-8')
 
-            const peertomlcofig = Object.values(serverData)
+            const peertomlconfig = Object.values(serverData)
                 .map(user => `
 [[peer]]
 public_key = "${user.PublicKey}"
@@ -153,8 +151,8 @@ name = "${user.confname}"
                 `)
                 .join('')
             
-            const peerhomlfile = '/config/peer.toml'
-            fs.writeFileSync(peerhomlfile, peertomlcofig.trim(), 'utf-8')
+            const peertomlfile = '/config/peer.toml'
+            fs.writeFileSync(peertomlfile, peertomlconfig.trim(), 'utf-8')
         }
             exec('sudo /usr/bin/ansible-playbook /etc/ansible/playbooks/update.yml')
         
